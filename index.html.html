@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="en" data-theme="dark" style="color-scheme: dark;"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Video Edit Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&amp;display=swap" rel="stylesheet">
+<style>
+:root{
+  box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+  --bg:#2340f5;--card:#ffffff;--ink:#121633;--soft:#5b6088;--line:#dfe2f5;--accent:#ff6a1a;--accent-ink:#ffffff;--track:#e6e8fa;--on-bg:#ffffff;
+  --font:"Bricolage Grotesque",system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0d1233;--card:#181e4a;--ink:#f2f3ff;--soft:#a3a8d6;--line:#2b336e;--track:#262d66;}}
+:root[data-theme="dark"]{--bg:#0d1233;--card:#181e4a;--ink:#f2f3ff;--soft:#a3a8d6;--line:#2b336e;--track:#262d66;}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*,*::before,*::after{box-sizing:inherit}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font);min-height:100vh}
+.wrap{max-width:1040px;margin:0 auto;padding:28px 18px 60px}
+.brand{color:var(--on-bg);font-weight:800;font-size:1.05rem;display:flex;align-items:center;gap:10px;margin-bottom:18px}
+.picks{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+.picks label{display:flex;flex-direction:column;gap:4px;color:var(--on-bg);font-size:.85rem;font-weight:600;flex:1;min-width:180px;max-width:340px}
+.picks select{font:inherit;font-weight:600;padding:10px 12px;border-radius:12px;border:2px solid rgba(255,255,255,.55);background:var(--card);color:var(--ink)}
+.search{position:relative;margin-bottom:14px;max-width:680px}
+.search input{width:100%;font:inherit;font-weight:600;padding:12px 16px;border-radius:14px;border:2px solid rgba(255,255,255,.55);background:var(--card);color:var(--ink)}
+.res{margin-top:8px;background:var(--card);border-radius:14px;box-shadow:0 12px 30px rgba(0,0,0,.25);max-height:320px;overflow-y:auto;padding:6px}
+.hit{display:flex;flex-direction:column;gap:2px;width:100%;text-align:left;font:inherit;color:var(--ink);background:none;border:0;border-radius:10px;padding:10px 12px;cursor:pointer}
+.hit:hover,.hit:focus-visible{background:var(--track)}
+.hit span,.none{color:var(--soft);font-size:.85rem}
+.none{padding:12px}
+.link{margin:-12px 0 26px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+a.btn{text-decoration:none;display:inline-block}
+.btn.danger{background:#c62828;color:#fff}
+.hint{color:var(--soft);font-size:.9rem}
+.card{background:var(--card);border-radius:22px;padding:28px 24px;box-shadow:0 18px 50px rgba(0,0,0,.22)}
+.head h1{font-size:clamp(1.7rem,4.5vw,2.6rem);line-height:1.05;margin:0 0 6px;font-weight:800;letter-spacing:-.02em}
+.head p{margin:0;color:var(--soft)}
+.now{margin:22px 0 30px;display:flex;gap:16px;align-items:center;background:var(--track);border-radius:16px;padding:16px 18px}
+.now .big{font-size:2rem;line-height:1}
+.now h2{margin:0;font-size:1.2rem}
+.now p{margin:3px 0 0;color:var(--soft);max-width:60ch}
+.eta{margin-left:auto;text-align:right;font-weight:600;white-space:nowrap}
+.eta small{display:block;color:var(--soft);font-weight:400}
+/* filmstrip timeline */
+.strip{position:relative;list-style:none;margin:0;padding:22px 0 8px;display:grid;grid-template-columns:repeat(var(--n),1fr);--pct:0%}
+.strip::before,.strip::after{content:"";position:absolute;top:44px;left:calc(50% / var(--n));height:10px;border-radius:5px}
+.strip::before{right:calc(50% / var(--n));background:var(--track)}
+.strip::after{width:calc((100% - 100% / var(--n)) * var(--pct) / 100);background:var(--accent);transition:width .9s cubic-bezier(.2,.8,.2,1)}
+.st{position:relative;z-index:1;text-align:center;padding:0 4px;background:none;border:0;font:inherit;color:inherit}
+button.st{cursor:pointer}
+.dot{width:54px;height:54px;margin:0 auto 10px;border-radius:14px;display:grid;place-items:center;font-size:1.5rem;background:var(--card);border:3px solid var(--track);filter:grayscale(1);opacity:.6;transition:.4s}
+.st.done .dot{background:var(--accent);border-color:var(--accent);filter:none;opacity:1}
+.st.active .dot{border-color:var(--accent);filter:none;opacity:1;animation:pulse 1.6s ease-in-out infinite}
+.st b{display:block;font-size:.92rem;line-height:1.15}
+.st span.s{display:block;font-size:.78rem;color:var(--soft);margin-top:3px}
+.st.upcoming b{color:var(--soft);font-weight:600}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(255,106,26,.55)}50%{box-shadow:0 0 0 10px rgba(255,106,26,0)}}
+@media (prefers-reduced-motion:reduce){.st.active .dot{animation:none}.strip::after{transition:none}}
+.foot{margin-top:24px;color:var(--soft);font-size:.9rem;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
+/* owner panel */
+.own{margin-top:22px;border:2px dashed var(--line);border-radius:16px;padding:16px}
+.own h3{margin:0 0 4px}
+.own p.h{margin:0 0 12px;color:var(--soft);font-size:.9rem}
+.row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+.own label{display:flex;flex-direction:column;gap:4px;font-size:.85rem;font-weight:600;flex:1;min-width:150px}
+.own input,.own textarea{font:inherit;padding:9px 10px;border-radius:10px;border:2px solid var(--line);background:var(--card);color:var(--ink)}
+.btn{font:inherit;font-weight:700;border:0;border-radius:12px;padding:10px 16px;cursor:pointer;background:var(--accent);color:var(--accent-ink)}
+.btn.ghost{background:var(--track);color:var(--ink)}
+.btn:disabled{opacity:.5;cursor:default}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.msg{font-size:.85rem;color:var(--soft);align-self:center}
+@media (max-width:720px){
+  .strip{grid-template-columns:1fr;gap:6px;padding:6px 0}
+  .strip::before,.strip::after{top:27px;left:22px;width:10px;right:auto;bottom:auto}
+  .strip::before{height:calc(100% - 54px)}
+  .strip::after{height:calc((100% - 54px) * var(--pct) / 100);width:10px;transition:height .9s}
+  .st{display:grid;grid-template-columns:54px 1fr;column-gap:14px;text-align:left;align-items:center;padding:0}
+  .st .dot{margin:0;grid-row:span 2}
+  .now{flex-wrap:wrap}.eta{margin-left:0;text-align:left}
+}
+</style>
+<link rel="stylesheet" href="chrome-extension://ppkojackhibeogijphhfnamhemklmial/css/ScreenshotControl.css"><link rel="stylesheet" href="chrome-extension://ppkojackhibeogijphhfnamhemklmial/css/ScreenshotControl.css"><link rel="stylesheet" href="chrome-extension://ppkojackhibeogijphhfnamhemklmial/css/ScreenshotControl.css"></head>
+<body>
+<div class="wrap"><div class="brand">🎬 Video Edit Tracker</div><div class="search"><input id="q" type="search" placeholder="Search projects, clients, departments or stages" aria-label="Search projects" autocomplete="off"><div id="res" class="res" hidden=""></div></div><div id="app"></div></div>
+
+<script id="state" type="application/json">{"projects":[{"id":"p1","title":"Video 2: Community Outreach","client":"Admissions","current":4,"note":"","due":"","updated":"2026-09-28T19:59:39.426Z","dept":"Admissions","link":"https://noordacom.box.com/s/3633ri43nsb21byssdhg33pt2a0y3jsd"},{"id":"p2","title":"Video 3: Campus Life","client":"Admissions","current":3,"note":"","due":"","updated":"2026-09-28T16:25:33.493Z","dept":"Admissions","link":"https://noordacom.box.com/s/ne2ce7n9nim5wado9338x7lwt7g4t08t"},{"id":"p1790612357314","title":"Video 4: Pods","client":"Admissions","current":3,"note":"","due":"","updated":"2026-09-28T16:25:58.723Z","dept":"Admissions","link":"https://noordacom.box.com/s/u8b830h6vzzkkrzz1qc2br2mq2h66l3l"},{"id":"p1790612376578","title":"Video 5: Why Noorda","client":"Admissions","current":4,"note":"","due":"","updated":"2026-09-28T20:00:21.143Z","dept":"Admissions","link":"https://noordacom.box.com/s/o2uh2jvkx0dmyy9eqc357j7lqui22gp7"},{"id":"p1790612915263","title":"Video 1: Research","client":"Admissions","dept":"Admissions","link":"https://noordacom.box.com/s/znp8dt0vnhmowi47ua139r92a7k6plz7","current":4,"note":"","due":"","updated":"2026-09-28T16:29:10.872Z"},{"id":"p1790612974475","title":"Video 6: Clinical Rotations","client":"Admissions","dept":"Admissions","link":"https://noordacom.box.com/s/ydoxxwfx1xqnbfkdsoct8d3msmz5b64d","current":0,"note":"","due":"","updated":"2026-09-28T16:29:53.315Z"},{"id":"p1790613020002","title":"Everbridge Tutorial","client":"Megan Smith","dept":"Security","link":"","current":0,"note":"","due":"","updated":"2026-09-28T16:30:54.905Z"},{"id":"p1790613070400","title":"08/31 Techniques","client":"Nathan Barnhurst","dept":"Clinical","link":"","current":2,"note":"","due":"","updated":"2026-09-28T16:32:34.515Z"},{"id":"p1790613184897","title":"Mountain West Promo","client":"Admissions","dept":"Admissions","link":"","current":1,"note":"","due":"","updated":"2026-09-28T16:33:29.817Z"}]}</script>
+
+<script>
+const STAGES=[
+ {n:"Brief received",i:"📝",d:"Goals, references and deadlines are confirmed."},
+ {n:"Footage ingest",i:"📥",d:"Files are backed up, synced and organized."},
+ {n:"Rough cut",i:"✂️",d:"Story and pacing are assembled."},
+ {n:"Your review",i:"👀",d:"The cut is ready for your feedback."},
+ {n:"Revisions",i:"🔁",d:"Your notes are being applied."},
+ {n:"Color & sound",i:"🎨",d:"Grade, mix, music and titles."},
+ {n:"Final export",i:"📤",d:"Rendering deliverables and checking quality."},
+ {n:"Delivered",i:"🎉",d:"Final files are in your hands."}
+];
+const $=id=>document.getElementById(id);
+let state=JSON.parse($("state").textContent);
+let sel=0,dirty=false,canEdit=false,artifact=null;
+const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const dec=s=>{const t=document.createElement("textarea");t.innerHTML=s;return t.value};
+const fmtDate=d=>{try{return new Date(d+(d.length===10?"T12:00:00":"")).toLocaleDateString(undefined,{month:"short",day:"numeric",year:"numeric"})}catch(e){return d}};
+const fmtTime=d=>{try{return new Date(d).toLocaleString(undefined,{month:"short",day:"numeric",hour:"numeric",minute:"2-digit"})}catch(e){return d}};
+
+let dept="",delArm=false;
+const deptOf=q=>dec(q.dept||"General");
+function render(){
+  const depts=[...new Set(state.projects.map(deptOf))].sort((x,y)=>x.localeCompare(y));
+  if(!depts.includes(dept))dept=state.projects[sel]?deptOf(state.projects[sel]):(depts[0]||"");
+  const inDept=state.projects.map((q,k)=>[q,k]).filter(([q])=>deptOf(q)===dept);
+  if(inDept.length&&!inDept.some(([,k])=>k===sel))sel=inDept[0][1];
+  const p=state.projects[sel];
+  const picks=depts.length?`<div class="picks"><label>Department<select id="pk-d">${depts.map(d=>`<option ${d===dept?"selected":""}>${esc(d)}</option>`).join("")}</select></label><label>Project<select id="pk-p">${inDept.map(([q,k])=>`<option value="${k}" ${k===sel?"selected":""}>${esc(dec(q.title))}</option>`).join("")}</select></label></div>`:"";
+  let h=picks;
+  if(p){
+    const n=STAGES.length,cur=p.current,stage=STAGES[Math.min(cur,n-1)],pct=cur>=n-1?100:(cur/(n-1))*100;
+    const ok=/^https:\/\/[^\s"<>]+$/i.test(p.link||"");
+    h+=`<div class="card"><div class="head"><h1>${esc(dec(p.title))}</h1><p>Prepared for ${esc(dec(p.client))} · ${esc(deptOf(p))}</p></div>
+    <div class="now"><div class="big">${stage.i}</div><div><h2>${cur>=n-1?"All done":"Now: "+stage.n}</h2><p>${esc(dec(p.note)||stage.d)}</p></div>
+    ${p.due?`<div class="eta"><small>Next update by</small>${esc(fmtDate(p.due))}</div>`:""}</div>
+    <div class="link">${ok?`<a class="btn" href="${esc(p.link)}" target="_blank" rel="noopener noreferrer">▶ Watch current draft on Box</a><span class="hint">Opens in Box. Sign in with your organization account.</span>`:`<span class="hint">The draft link will appear here when the first cut is ready.</span>`}</div>
+    <ol class="strip" style="--n:${n};--pct:${pct}%">${STAGES.map((s,k)=>{
+      const cls=k<cur?"done":k===cur&&cur<n-1?"active":k===n-1&&cur>=n-1?"done":"upcoming";
+      const sub=cls==="done"?"Complete":cls==="active"?"In progress":"Up next";
+      const inner=`<div class="dot" aria-hidden="true">${cls==="done"&&k<n-1?"✓":s.i}</div><b>${s.n}</b><span class="s">${sub}</span>`;
+      return canEdit?`<li style="display:contents"><button class="st ${cls}" data-stage="${k}" title="Set as current stage">${inner}</button></li>`:`<li class="st ${cls}"${cls==="active"?' aria-current="step"':""}>${inner}</li>`}).join("")}</ol>
+    <div class="foot"><span>${p.updated?"Last updated "+esc(fmtTime(p.updated)):"No updates yet"}</span><span>Questions? Reply to your latest email thread.</span></div></div>`;
+  }else h+=`<div class="card"><div class="head"><h1>No projects yet</h1><p>${canEdit?"Add your first project below.":"Check back soon."}</p></div></div>`;
+  if(canEdit)h+=`<div class="own"><h3>Share with clients</h3><p class="h">Send this link to clients. Who can open it depends on the sharing setting on this page in Claude.</p><div class="row"><input id="sl" readonly style="flex:1;min-width:220px" value="https://claude.ai/artifact/GvC4wsXztAL1nNpf7mqv4M"><button class="btn" id="cp">Copy link</button><span class="msg" id="cm"></span></div></div><div class="own"><h3>Your controls</h3><p class="h">${p?"Tap a stage above to set where this project is. Then add a note and publish so clients see it.":"Add a project to get started."}</p>
+   ${p?`<div class="row"><label>Project title<input id="f-title" value="${esc(dec(p.title))}"></label><label>Client<input id="f-client" value="${esc(dec(p.client))}"></label><label>Department<input id="f-dept" list="dl" value="${esc(deptOf(p))}"><datalist id="dl">${depts.map(d=>`<option value="${esc(d)}">`).join("")}</datalist></label></div>
+   <div class="row"><label>Box link to current draft<input id="f-link" type="url" placeholder="https://app.box.com/s/…" value="${esc(p.link||"")}"></label></div>
+   <div class="row"><label>Note to client<textarea id="f-note" rows="2">${esc(dec(p.note))}</textarea></label><label style="max-width:200px">Next update by<input id="f-due" type="date" value="${esc(p.due)}"></label></div>`:""}
+   <div class="row"><button class="btn" id="pub" ${dirty?"":"disabled"}>Publish update</button><button class="btn ghost" id="add">Add project</button>${p?'<button class="btn danger" id="del">Delete project</button>':""}<span class="msg" id="msg">${dirty?"Unpublished changes":"Everything is live"}</span></div>
+   <p class="hint">Make sure the Box link's sharing setting lets your clients open it.</p></div>`;
+  $("app").innerHTML=h;
+  doSearch();
+  if($("pk-d")){
+    $("pk-d").onchange=e=>{dept=e.target.value;sel=state.projects.findIndex(q=>deptOf(q)===dept);render()};
+    $("pk-p").onchange=e=>{sel=+e.target.value;render()};
+  }
+  if(!canEdit)return;
+  document.querySelectorAll("[data-stage]").forEach(b=>b.onclick=()=>{p.current=+b.dataset.stage;touch();render()});
+  if(p){
+    [["f-title","title"],["f-client","client"],["f-note","note"],["f-due","due"],["f-link","link"]].forEach(([id,key])=>$(id).oninput=e=>{p[key]=e.target.value.trim&&key==="link"?e.target.value.trim():e.target.value;touch()});
+    $("f-dept").onchange=e=>{p.dept=e.target.value.trim()||"General";dept=p.dept;touch();render()};
+    $("del").onclick=()=>{
+      if(!delArm){delArm=true;$("del").textContent="Click again to delete";setTimeout(()=>{delArm=false;const b=$("del");if(b)b.textContent="Delete project"},4000);return}
+      state.projects.splice(sel,1);delArm=false;sel=0;touch();render();
+    };
+  }
+  $("add").onclick=()=>{state.projects.push({id:"p"+Date.now(),title:"New project",client:"Client name",dept:dept||"General",link:"",current:0,note:"",due:"",updated:""});sel=state.projects.length-1;touch();render()};
+  $("pub").onclick=publish;
+  $("cp").onclick=async()=>{
+    const i=$("sl");i.select();
+    try{await navigator.clipboard.writeText(i.value);$("cm").textContent="Link copied"}
+    catch(e){$("cm").textContent="Press Ctrl+C (Cmd+C on Mac) to copy"}
+  };
+}
+function touch(quiet){dirty=true;const b=$("pub"),m=$("msg");if(b)b.disabled=false;if(m)m.textContent="Unpublished changes"}
+
+async function publish(){
+  if(!artifact)return;
+  if(state.projects[sel])state.projects[sel].updated=new Date().toISOString();
+  const c=document.documentElement.cloneNode(true);
+  [...c.querySelectorAll("style")].slice(1).forEach(e=>e.remove());c.querySelector("#app").innerHTML="";c.querySelector("#res").innerHTML="";c.querySelector("#res").hidden=true;
+  c.querySelector("#state").textContent=JSON.stringify(state).replace(/</g,"\\u003c");
+  $("pub").disabled=true;$("msg").textContent="Publishing…";
+  try{await artifact.publish("<!doctype html>\n"+c.outerHTML)}
+  catch(e){$("pub").disabled=false;$("msg").textContent=e&&e.code==="conflict"?"Someone else published first. Reloading.":"Couldn't publish. Try again."}
+}
+
+const q=$("q"),res=$("res");
+const stageName=p=>STAGES[Math.min(p.current,STAGES.length-1)].n;
+function doSearch(){
+  const terms=q.value.trim().toLowerCase().split(/\s+/).filter(Boolean);
+  if(!terms.length){res.hidden=true;res.innerHTML="";return}
+  const hits=state.projects.map((p,k)=>[p,k]).filter(([p])=>{const t=[dec(p.title),dec(p.client),deptOf(p),stageName(p),dec(p.note||"")].join(" ").toLowerCase();return terms.every(w=>t.includes(w))});
+  res.hidden=false;
+  res.innerHTML=hits.length?hits.map(([p,k])=>`<button class="hit" data-k="${k}"><b>${esc(dec(p.title))}</b><span>${esc(dec(p.client))} · ${esc(deptOf(p))} · ${esc(stageName(p))}</span></button>`).join(""):`<div class="none">No projects match "${esc(q.value.trim())}".</div>`;
+  res.querySelectorAll(".hit").forEach(b=>b.onclick=()=>{sel=+b.dataset.k;dept=deptOf(state.projects[sel]);q.value="";render();window.scrollTo({top:0,behavior:"smooth"})});
+}
+q.oninput=doSearch;
+q.onkeydown=e=>{if(e.key==="Escape"){q.value="";doSearch()}};
+
+render();
+(async()=>{
+  try{
+    if(!window.claude||!claude.use)return;
+    const [u,a]=await Promise.all([claude.use("user"),claude.use("artifact")]);
+    if(u&&a&&u.isOwner()){artifact=a;canEdit=true;render()}
+  }catch(e){}
+})();
+</script>
+
+
+</body></html>
